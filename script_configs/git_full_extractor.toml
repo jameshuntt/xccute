@@ -1,0 +1,45 @@
+[script]
+path = "mirror_export.sh"
+
+[[section]]
+title = "Clone mirror repository"
+commands = [
+  { type = "git", subcommand = "clone", args = ["--mirror", "https://github.com/user_or_org/repo.git", "repo.git"] }
+]
+
+[[section]]
+title = "Clone working copy from mirror"
+commands = [
+  { type = "git", subcommand = "clone", args = ["repo.git", "repo"] }
+]
+
+[[section]]
+title = "Enter working directory"
+commands = [
+  { type = "line", value = "cd repo" }
+]
+
+[[section]]
+title = "Prepare export directory"
+commands = [
+  { type = "mkdir", path = "exports", parents = true }
+]
+
+[[section]]
+title = "Export all tags to folders"
+commands = [
+  { type = "echo", message = "🏷️ Exporting tags..." },
+  { type = "line", value = '''
+for tag in $(git tag); do
+    DEST="exports/repo-${tag}"
+    echo "➡️  Creating folder for tag: $tag -> $DEST"
+    git worktree add --detach "$DEST" "$tag" || echo "⚠️ Failed to export tag $tag"
+done
+''', quoted = true }
+]
+
+[[section]]
+title = "Done"
+commands = [
+  { type = "echo", message = "✅ All tags exported to ./exports/" }
+]

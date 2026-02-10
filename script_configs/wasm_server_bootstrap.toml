@@ -1,0 +1,58 @@
+[script]
+path = "bootstrap.sh"
+
+[[section]]
+title = "Create workspace root"
+commands = [
+  { type = "mkdir", path = "my_project", parents = true },
+  { type = "line", value = "cd my_project" },
+  { type = "line", value = "touch Cargo.toml" }
+]
+
+[[section]]
+title = "Write workspace config"
+commands = [
+  { type = "echo", message = '''
+[workspace]
+members = [
+    "crates/core-lib",
+    "crates/wasm-wrapper",
+    "crates/server-app",
+    "crates/proto-defs"
+]
+''', quoted = true },
+  { type = "line", value = "echo \"$ECHO_OUTPUT\" > Cargo.toml" }
+]
+
+[[section]]
+title = "Make crates dir"
+commands = [
+  { type = "mkdir", path = "crates", parents = true }
+]
+
+[[section]]
+title = "Create crates"
+commands = [
+  { type = "cargo", subcommand = "new", name = "crates/core-lib", lib = true },
+  { type = "cargo", subcommand = "new", name = "crates/wasm-wrapper", lib = true },
+  { type = "cargo", subcommand = "new", name = "crates/server-app", bin = true },
+  { type = "cargo", subcommand = "new", name = "crates/proto-defs" }
+]
+
+[[section]]
+title = "Write proto-defs/build.rs"
+commands = [
+  { type = "echo", message = '''
+fn main() {
+    tonic_build::compile_protos("proto/service.proto").unwrap();
+}
+''', quoted = true },
+  { type = "line", value = "echo \"$ECHO_OUTPUT\" > crates/proto-defs/build.rs" }
+]
+
+[[section]]
+title = "Make proto folder"
+commands = [
+  { type = "mkdir", path = "crates/proto-defs/proto", parents = true },
+  { type = "line", value = "touch crates/proto-defs/proto/service.proto" }
+]
