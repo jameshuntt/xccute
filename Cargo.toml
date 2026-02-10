@@ -8,7 +8,7 @@ description = "type safe declarative builders for shell commands in rust"
 
 authors = ["James Hunt <jameshuntdevelopment@gmail.com>"]
 repository = "https://github.com/jameshuntt/xccute"
-readme = "README.md"
+readme = "readme.md"
 
 
 [dependencies]
