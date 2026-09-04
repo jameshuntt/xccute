@@ -1,6 +1,6 @@
 // src/preset/registry.rs
 use std::collections::HashMap;
-use super::preset::CommandPreset;
+use super::command_preset::CommandPreset;
 
 #[derive(Default)]
 pub struct CommandRegistry {

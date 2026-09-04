@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use crate::{
     cargo::CargoBuilder,
     CdBuilder,
-    command::ShellCommand,
     fs::{
         mkdir::MkdirBuilder,
         echo::EchoBuilder,

@@ -6,7 +6,7 @@ use ed25519_dalek::{Signature, SigningKey, Verifier, VerifyingKey};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    command::ShellCommand,
+    ShellCommand,
     from_config,
     CommandChainSnapshot,
     CommandError,
@@ -14,27 +14,19 @@ use crate::{
     ScriptConfig
 };
 
-pub struct CommandChainExecutor {
+/// Called with the rendered command when a step fails.
+pub type ErrorHandler = Box<dyn Fn(&str) + Send + Sync>;
+
+#[derive(Default)]
+pub struct CommandChain {
     pub steps: Vec<CommandStep>,
     pub log_file: Option<String>,
     pub dry_run: bool,
-    pub on_error: Option<Box<dyn Fn(&str) + Send + Sync>>,
+    pub on_error: Option<ErrorHandler>,
     pub context: Option<String>,
 }
 
-impl Default for CommandChainExecutor {
-    fn default() -> Self {
-        Self {
-            steps: vec![],
-            log_file: None,
-            dry_run: false,
-            on_error: None,
-            context: None,
-        }
-    }
-}
-
-impl CommandChainExecutor {
+impl CommandChain {
     pub fn new() -> Self {
         Self::default()
     }
@@ -73,23 +65,29 @@ impl CommandChainExecutor {
                 continue;
             }
 
-            if let Some(ref handler) = self.on_error {
-                handler(&cmd);
-            }
-
             if let Some(ref ctx) = self.context {
                 println!("\n# === {} ===", ctx);
-            }            
-            
+            }
+
             let result = std::process::Command::new("sh")
                 .arg("-c")
-                .arg(cmd)
+                .arg(&cmd)
                 .status();
 
             match result {
-                Ok(status) if status.success() => continue,
-                Ok(status) => return Err(CommandError::ExitFailure(status.code())),
-                Err(e) => return Err(CommandError::Io(e)),
+                Ok(status) if status.success() => {}
+                Ok(status) => {
+                    if let Some(ref handler) = self.on_error {
+                        handler(&cmd);
+                    }
+                    return Err(CommandError::ExitFailure(status.code()));
+                }
+                Err(e) => {
+                    if let Some(ref handler) = self.on_error {
+                        handler(&cmd);
+                    }
+                    return Err(CommandError::Io(e));
+                }
             }
 
             if let Some(ref log_path) = self.log_file {
@@ -130,19 +128,19 @@ impl CommandChainExecutor {
         self
     }
 
-    pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::error::Error>> {
+    pub fn chain_from_toml(toml: &str) -> Result<CommandChain, Box<dyn std::error::Error>> {
         use crate::script_config::ScriptConfig;
         use crate::toml_loader::from_config;
     
         let config: ScriptConfig = toml::from_str(toml)?;
         let script_builder = from_config(config);
     
-        let mut chain = CommandChainExecutor::new();
+        let mut chain = CommandChain::new();
         for line in &script_builder.lines {
             if line.trim().is_empty() {
                 continue;
             }
-            chain = chain.then(crate::command::RawCommand(line.to_string()));
+            chain = chain.then(crate::RawCommand(line.to_string()));
         }
     
         Ok(chain)
@@ -169,10 +167,12 @@ impl CommandChainExecutor {
     }
 
     pub fn restore(snapshot: &CommandChainSnapshot) -> Self {
-        let mut executor = CommandChainExecutor::default();
-        executor.steps = snapshot.steps.iter().map(|s| CommandStep::new(
+        let mut executor = CommandChain {
+            steps: snapshot.steps.iter().map(|s| CommandStep::new(
             Box::new(RawCommand(s.clone())))
-        ).collect();
+        ).collect(),
+            ..CommandChain::default()
+        };
         executor.context = snapshot.context.clone();
         executor.log_file = snapshot.log_file.clone();
         executor.dry_run = snapshot.dry_run;
@@ -208,7 +208,7 @@ impl CommandChainExecutor {
         // let sig = Signature::from_bytes(signature.try_into().expect("Expected 64-byte signature")).expect("Invalid signature");
         //let sig = Signature::from_bytes(signature.try_into().map_err(|_| "Expected 64-byte signature")?)?;
 
-        let sig_bytes: [u8; 64] = hex::decode(&signature)
+        let sig_bytes: [u8; 64] = hex::decode(signature)
             .expect("Invalid signature")
             .try_into()
             .expect("Signature size mismatch");
@@ -222,7 +222,7 @@ impl CommandChainExecutor {
         let data = std::fs::read_to_string(path)?;
         let snapshot: CommandChainSnapshot = serde_json::from_str(&data)?;
 
-        let mut executor = CommandChainExecutor::new()
+        let mut executor = CommandChain::new()
             .dry_run();
             // .dry_run(snapshot.dry_run);
 
@@ -242,7 +242,7 @@ impl CommandChainExecutor {
     }
 }
 
-impl CommandChainExecutor {
+impl CommandChain {
     pub fn save_snapshot2(&self, path: &str, metadata: BTreeMap<String, String>) -> Result<(), Box<dyn std::error::Error>> {
         // Prepare the list of command steps as strings
         let steps: Vec<String> = self.steps.iter()
@@ -315,11 +315,11 @@ impl CommandStep {
 
 
 
-pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::error::Error>> {
+pub fn chain_from_toml(toml: &str) -> Result<CommandChain, Box<dyn std::error::Error>> {
     let config: ScriptConfig = toml::from_str(toml)?;
     let script = from_config(config);
 
-    let mut chain = CommandChainExecutor::new().context("From TOML");
+    let mut chain = CommandChain::new().context("From TOML");
 
     for line in &script.lines {
         if line.trim().is_empty() {
@@ -336,9 +336,9 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 
 
 // last version
-// use crate::{command::ShellCommand, CommandError, RawCommand, from_config, ScriptConfig};
+// use crate::{ShellCommand, CommandError, RawCommand, from_config, ScriptConfig};
 // 
-// pub struct CommandChainExecutor {
+// pub struct CommandChain {
 //     pub steps: Vec<CommandStep>,
 //     pub log_file: Option<String>,
 //     pub dry_run: bool,
@@ -346,7 +346,7 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 //     pub context: Option<String>,
 // }
 // 
-// impl Default for CommandChainExecutor {
+// impl Default for CommandChain {
 //     fn default() -> Self {
 //         Self {
 //             steps: vec![],
@@ -358,7 +358,7 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 //     }
 // }
 // 
-// impl CommandChainExecutor {
+// impl CommandChain {
 //     pub fn new() -> Self {
 //         Self::default()
 //     }
@@ -439,7 +439,7 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 //                 .status();
 // 
 //             match result {
-//                 Ok(status) if status.success() => continue,
+//                 Ok(status) if status.success() => {}
 //                 Ok(status) => {
 //                     if let Some(ref handler) = self.on_error {
 //                         handler(&cmd);
@@ -493,21 +493,21 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 // original
 // 
 // use crate::{
-//     command::ShellCommand,
+//     ShellCommand,
 //     CommandError
 // };
 // 
-// pub struct CommandChainExecutor {
+// pub struct CommandChain {
 //     pub steps: Vec<CommandStep>,
 // }
 // 
-// impl Default for CommandChainExecutor {
+// impl Default for CommandChain {
 //     fn default() -> Self {
 //         Self { steps: vec![] }
 //     }
 // }
 // 
-// impl CommandChainExecutor {
+// impl CommandChain {
 //     pub fn new() -> Self {
 //         Self::default()
 //     }
@@ -547,7 +547,7 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 //                 .status();
 // 
 //             match result {
-//                 Ok(status) if status.success() => continue,
+//                 Ok(status) if status.success() => {}
 //                 Ok(status) => return Err(CommandError::ExitFailure(status.code())),
 //                 Err(e) => return Err(CommandError::Io(e)),
 //             }
@@ -572,13 +572,13 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 
 // snapshot example
 // fn main() {
-//     let chain = CommandChainExecutor::new()
+//     let chain = CommandChain::new()
 //         .then(EchoBuilder::new("Hello, world!"))
 //         .log_to_file("execution.log");
 // 
 //     chain.save_snapshot("snapshot.json").unwrap();
 // 
-//     let loaded_chain = CommandChainExecutor::load_snapshot("snapshot.json").unwrap();
+//     let loaded_chain = CommandChain::load_snapshot("snapshot.json").unwrap();
 //     loaded_chain.run().unwrap();
 // 
 //     // Signing and verifying
@@ -586,7 +586,7 @@ pub fn chain_from_toml(toml: &str) -> Result<CommandChainExecutor, Box<dyn std::
 //     let signature = loaded_chain.sign_snapshot(&private_key, "snapshot.json").unwrap();
 //     let public_key = [0u8; 32]; // Replace with actual key
 // 
-//     let is_valid = CommandChainExecutor::verify_snapshot("snapshot.json", &signature.to_bytes(), &public_key);
+//     let is_valid = CommandChain::verify_snapshot("snapshot.json", &signature.to_bytes(), &public_key);
 //     println!("Snapshot valid: {}", is_valid);
 // }
 // 

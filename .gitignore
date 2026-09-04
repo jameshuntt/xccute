@@ -1,2 +1,3 @@
 /target
-/.vscode
+**/target
+.DS_Store

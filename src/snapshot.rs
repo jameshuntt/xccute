@@ -1,6 +1,4 @@
-use crate::command_chain::CommandChainExecutor;
-use crate::CommandStep;
-use crate::{command::ShellCommand, from_config, CommandError, RawCommand, ScriptConfig};
+use crate::command_chain::CommandChain;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -21,7 +19,7 @@ pub struct CommandChainSnapshot {
 }
 
 impl CommandChainSnapshot {
-    pub fn new(executor: &CommandChainExecutor) -> Self {
+    pub fn new(executor: &CommandChain) -> Self {
         let steps = executor.steps.iter().map(|s| s.command.build()).collect();
         let context = executor.context.clone();
         let log_file = executor.log_file.clone();
@@ -46,11 +44,6 @@ impl CommandChainSnapshot {
         let hash = Sha256::digest(json.as_bytes());
         self.hash = format!("{:x}", hash);
         self
-    }
-    fn calculate_hash(&self) -> String {
-        let json = serde_json::to_string(self).expect("Failed to serialize snapshot");
-        let hash = Sha256::digest(json.as_bytes());
-        format!("{:x}", hash)
     }
     pub fn save(&self, path: &str) -> std::io::Result<()> {
         let json = serde_json::to_string_pretty(self).unwrap();

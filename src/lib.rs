@@ -1,71 +1,34 @@
-#![allow(unused, ambiguous_glob_imports, ambiguous_glob_reexports)]
+#![doc = include_str!("../README.md")]
+#![forbid(unsafe_code)]
 
-pub mod shell;
-pub use shell::*;
+/// The traits a generated argv command implements.
+pub use xccute_contract as contract;
+/// Execution: `ShellCommand`, `RawCommand`, `CommandSpec`, the runner, the seams.
+pub use xccute_runtime as runtime;
+/// The command builders, by family.
+pub use xccute_commands as commands;
+/// The decision vocabulary: questions, observation tools, paths, runbooks.
+pub use xccute_decisions as decisions;
 
-pub mod shell_scripts;
-pub use shell_scripts::*;
-
-pub mod command;
-pub use command::*;
-
-pub mod command_builder;
-pub use command_builder::*;
-
-pub mod fs;
-pub use fs::*;
-
-pub mod grep;
-pub use grep::*;
-
-pub mod net;
-pub use net::*;
-
-pub mod preset;
-pub use preset::*;
-
-pub mod proc;
-pub use proc::*;
-
-pub mod user;
-pub use user::*;
-
-pub mod utilscript;
-pub use utilscript::*;
-
-pub mod runner;
-pub use runner::*;
-
-pub mod command_registry;
-pub use command_registry::*;
+pub use xccute_commands::*;
+pub use xccute_runtime::*;
 
 pub mod command_chain;
-pub use command_chain::*;
-
-pub mod psql;
-pub use psql::*;
-
+pub mod composite;
+pub mod nested;
+pub mod preset;
 pub mod script_config;
-pub use script_config::*;
-
-pub mod toml_loader;
-pub use toml_loader::*;
-
-pub mod cargo;
-pub use cargo::*;
-
-
-
-pub mod third_party;
-pub use third_party::*;
-
-pub mod macros;
-pub use macros::*;
-
-
+pub mod shell_scripts;
 pub mod snapshot;
-pub use snapshot::*;
+pub mod subcommand;
+pub mod toml_loader;
 
-
-pub mod kms;
-pub use kms::*;
+pub use command_chain::{CommandChain, CommandStep};
+pub use composite::*;
+pub use nested::{ConfigError, DynStageFactory, NestedCommand, NestedRegistry, ShellFragment, StageDecl, StageFactory};
+pub use preset::*;
+pub use script_config::*;
+pub use shell_scripts::ScriptBuilder;
+pub use snapshot::CommandChainSnapshot;
+pub use subcommand::{ShellProgram, ShellSubCommand};
+pub use toml_loader::from_config;

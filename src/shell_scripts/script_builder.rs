@@ -1,4 +1,4 @@
-use crate::command::ShellCommand;
+use crate::ShellCommand;
 use crate::ShBuilder;
 use std::fs::{OpenOptions, read_to_string};
 use std::io::{self, Write};
@@ -74,17 +74,7 @@ impl ScriptBuilder {
         if self.dedupe {
             use std::collections::HashSet;
             let mut seen = HashSet::new();
-            final_lines = final_lines
-                .into_iter()
-                .filter(|line| {
-                    if seen.contains(line) {
-                        false
-                    } else {
-                        seen.insert(line.clone());
-                        true
-                    }
-                })
-                .collect();
+            final_lines.retain(|line| seen.insert(line.clone()));
         }
 
         let mut file = OpenOptions::new()
