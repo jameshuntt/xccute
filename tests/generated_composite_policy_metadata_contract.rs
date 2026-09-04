@@ -66,14 +66,14 @@ struct PgrepPattern {
 
 #[test]
 fn simple_subcommand_policy_metadata_is_available_on_rooted_command() {
-    let cmd = Systemctl::restart("nodeplan-worker.service");
+    let cmd = Systemctl::restart("fleet-worker.service");
     let arrangement = cmd.arrange();
     let policy = cmd.xccute_policy();
 
     assert_eq!(arrangement.program(), OsStr::new("systemctl"));
     let expected = vec![
         OsString::from("restart"),
-        OsString::from("nodeplan-worker.service"),
+        OsString::from("fleet-worker.service"),
     ];
     assert_eq!(arrangement.argv(), expected.as_slice());
 
@@ -111,12 +111,12 @@ fn composite_surface_policy_metadata_merges_with_leaf_subcommand_policy() {
 
 #[test]
 fn unannotated_subcommand_policy_defaults_to_unprivileged_dry_run_metadata() {
-    let cmd = Pgrep::pattern("nodeplan");
+    let cmd = Pgrep::pattern("fleet");
     let arrangement = cmd.arrange();
     let policy = cmd.xccute_policy();
 
     assert_eq!(arrangement.program(), OsStr::new("pgrep"));
-    let expected = vec![OsString::from("match"), OsString::from("nodeplan")];
+    let expected = vec![OsString::from("match"), OsString::from("fleet")];
     assert_eq!(arrangement.argv(), expected.as_slice());
     assert_eq!(policy.sensitivity(), XccuteCommandSensitivity::Normal);
     assert!(!policy.is_sensitive());

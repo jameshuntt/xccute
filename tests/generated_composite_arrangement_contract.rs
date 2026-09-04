@@ -40,18 +40,18 @@ struct GitRemoteAdd {
 
 #[test]
 fn direct_composite_subcommand_arranges_program_argv_and_display_without_shellcommand() {
-    let cmd = Systemctl::restart("nodeplan-worker.service");
+    let cmd = Systemctl::restart("fleet-worker.service");
     let arrangement = cmd.arrange();
 
     assert_eq!(arrangement.program(), OsStr::new("systemctl"));
     let expected = vec![
         OsString::from("restart"),
-        OsString::from("nodeplan-worker.service"),
+        OsString::from("fleet-worker.service"),
     ];
     assert_eq!(arrangement.argv(), expected.as_slice());
     assert_eq!(
         arrangement.display(),
-        "systemctl restart nodeplan-worker.service"
+        "systemctl restart fleet-worker.service"
     );
 
     // The arrangement is the same trusted program + argv material as the
