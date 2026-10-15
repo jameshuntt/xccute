@@ -516,11 +516,11 @@ dependencies = [
 
 [[package]]
 name = "simple_impl"
-version = "0.1.8"
+version = "0.1.9"
 
 [[package]]
 name = "simple_impl_attr_kit"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -529,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "simple_impl_core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "simple_impl_derive"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "liaise",
  "prettyplease",
@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "simple_impl_quote_kit"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -842,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "xccute_commands"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "simple_impl",
  "simple_impl_derive",
@@ -851,7 +851,7 @@ dependencies = [
 
 [[package]]
 name = "xccute_contract"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "xccute_decisions"
