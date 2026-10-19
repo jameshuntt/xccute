@@ -41,6 +41,11 @@ builders render, and values in it are shell syntax. An **argv command**
 vector of `OsString`s that never meets a shell, and is validated and
 previewed before it runs. Use the second for untrusted input.
 
+## Releasing
+
+CI (.github/workflows/ci.yml) runs the tests and clippy on every push. It does not publish yet: main carries
+xccute 0.3.0 (crates.io has 0.2.1), which is not on crates.io, so the publish job is left out until that release is ready.
+
 ## License
 
 MIT OR Apache-2.0.

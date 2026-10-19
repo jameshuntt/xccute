@@ -2,7 +2,7 @@
 name = "xccute"
 version = "0.3.0"
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Typed shell commands for Rust: builders for the commands people run, argv commands that are validated and previewed before they execute, chains, scripts and signed snapshots, one facade over xccute_contract, xccute_runtime, xccute_commands and xccute_decisions."
 authors = ["James Hunt <james@1o.business>"]
