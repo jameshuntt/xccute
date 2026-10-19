@@ -41,10 +41,40 @@ builders render, and values in it are shell syntax. An **argv command**
 vector of `OsString`s that never meets a shell, and is validated and
 previewed before it runs. Use the second for untrusted input.
 
+## Lines walked as a chain, and a step that holds a lock
+
+A `LineChain` walks argv lines in order, each decided by its exit-status
+policy (a derived line's named statuses and accepted codes, through
+`then_command`): Continue to the next step, Stop, or JumpTo a named step. A
+`Hold` is a step that takes a resource, walks its own lines while it is held,
+walks its rollback when one of them fails, and lets the resource go after,
+either way. `LockFile` is a lock file opened read-only and never created, held
+by an exclusive `flock`; no file means nothing to wait for. Every wait xccute
+uses is in one table, `xccute::timing`.
+
+```rust
+use std::time::Duration;
+use xccute::contract::CommandPreview;
+use xccute::{ExitStatusPolicy, Hold, LineChain, LockFile};
+
+let line = |words: &[&str]| CommandPreview::new(words[0].into(), words[1..].iter().map(Into::into).collect());
+let restart = LineChain::new("restart").then("systemctl", &line(&["systemctl", "restart", "relayer.service"]), ExitStatusPolicy::new());
+let undo = LineChain::new("undo").then("start", &line(&["systemctl", "start", "relayer.service"]), ExitStatusPolicy::new());
+let lock = std::env::temp_dir().join("xccute-readme-no-such-dir/anchor.lock");
+let hold = Hold::new("restart", LockFile::new(&lock), restart).timeout(Duration::from_secs(1200)).rollback(undo);
+let chain = LineChain::new("deploy").hold(hold);
+
+assert_eq!(chain.shown()[0].1, format!("hold {} for 1200 s", lock.display()));
+// `chain.run()` runs each line as its own process; a dry walk answers each status itself
+let walked = chain.walk(|_| Some(0)).unwrap();
+assert_eq!(walked.iter().map(|w| w.id.as_str()).collect::<Vec<_>>(), ["restart/systemctl", "restart"]);
+assert_eq!(walked[1].decision.reason, format!("restart ran no {}: nothing to wait for", lock.display()));
+```
+
 ## Releasing
 
-CI (.github/workflows/ci.yml) runs the tests and clippy on every push. It does not publish yet: main carries
-xccute 0.3.0 (crates.io has 0.2.1), which is not on crates.io, so the publish job is left out until that release is ready.
+Bump `version` in Cargo.toml, add a dated `## <version> (YYYY-MM-DD)` entry to CHANGELOG.md, and push to
+`main`. CI (.github/workflows/ci.yml) runs the tests and clippy, then publishes that version to crates.io.
 
 ## License
 
